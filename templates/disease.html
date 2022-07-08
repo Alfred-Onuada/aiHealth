@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0" />
+    <title>Symptoms Prediction</title>
+
+    <!-- CSS  -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="./static/css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection" />
+    <link href="./static/css/style.css" type="text/css" rel="stylesheet" media="screen,projection" />
+    <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  </head>
+  <body>
+
+    <nav id="navbar" class="">
+      <div class="nav-wrapper">
+        <!-- Navbar Logo -->
+        <div class="logo">
+          <a src="static/img/logo.png"><i class="fa fa-angellist"></i> Logo</a>
+        </div>
+
+        <!-- Navbar Links -->
+        <ul id="menu">
+          <li><a href="{{ url_for('home') }}">Home</a></li>
+          <li><a href="{{ url_for('disease') }}">Disease</a></li>
+          <li><a href="{{ url_for('symptoms') }}">Symptoms</a></li>
+          <li><a href="{{ url_for('common_symptoms') }}">Mutual Symptoms</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Menu Icon -->
+    <div class="menuIcon">
+      <span class="icon icon-bars"></span>
+      <span class="icon icon-bars overlay"></span>
+    </div>
+
+    <div class="overlay-menu">
+      <ul id="menu">
+        <li><a href="{{ url_for('home') }}">Home</a></li>
+        <li><a href="{{ url_for('disease') }}">Disease</a></li>
+        <li><a href="{{ url_for('symptoms') }}">Symptoms</a></li>
+        <li><a href="{{ url_for('common_symptoms') }}">Mutual Symptoms</a></li>
+      </ul>
+    </div>
+
+    <div class="section no-pad-bot" id="index-banner">
+      <div class="container">
+        <br><br>
+        <h2 class="header center orange-text">Symptoms Prediction</h2>
+        <div class="row center">
+          <h5 class="header col s12 light">Determine common symptoms of a neonatal disease</h5>
+          <h6 class="header col s12 light">
+            (Please enter a specific neonatal disease)
+          </h6>
+        </div>
+
+        <div class="row">
+          <form class="col s12">
+            <div class="row">
+              <div class="input-field col m9 col s12">
+                <input id="disease" type="text" class="validate">
+                <label for="disease">Enter the disease name</label>
+              </div>
+              <div class="col m3 col s12">
+                <a onclick="getSymptomsOfDisease()" class="waves-effect waves-light btn-flat btn-large orange">Predict Symptoms</a>
+              </div>
+            </div>
+          </form>
+
+          <div id="loader" class="center hide">
+            <div class="preloader-wrapper big active">
+              <div class="spinner-layer spinner-orange">
+                <div class="circle-clipper left">
+                  <div class="circle"></div>
+                </div>
+                <div class="gap-patch">
+                  <div class="circle"></div>
+                </div>
+                <div class="circle-clipper right">
+                  <div class="circle"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="output">
+            <h5 id="200" class="header col s12 light hide">Here are some of the common symptoms:</h5>
+            <h5 id="404" class="header col s12 light hide">We couldn't find that disease in our records, check the speeling and try again</h5>
+            <h5 id="500" class="header col s12 light hide">We encountered an error processing your request, please try again</h5>
+            
+            <ol id="symptoms-list"></ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+
+      const getSymptomsOfDisease = async function () {
+        const loader = document.getElementById('loader');
+        const diseaseName = document.getElementById("disease").value.toLowerCase();
+        const symptomsList = document.getElementById('symptoms-list');
+        const successText = document.getElementById('200');
+        const notFoundText = document.getElementById('404');
+        const serverErrorText = document.getElementById('500');
+
+        // reset the texts
+        successText.classList.add('hide');
+        notFoundText.classList.add('hide');
+        serverErrorText.classList.add('hide');
+        symptomsList.innerHTML = '';
+
+        loader.classList.remove('hide');
+
+        try {
+          let response = await fetch(`/get_symptoms?disease=${diseaseName}`);
+
+          response = await response.json();
+
+          if (response.status == 200) {
+            successText.classList.remove('hide');
+
+            for (let symptom of response.symptoms.symptoms) {
+              let li = document.createElement('li');
+              li.classList.add("col", "s12");
+              li.style.cssText = "margin: 0px 5%;"
+              let h5 = document.createElement('h5');
+              h5.style.cssText = "color: black;";
+
+              h5.textContent = symptom;
+              
+              li.appendChild(h5);
+              symptomsList.appendChild(li);
+            }
+
+          } else if (response.status == 404) {
+            notFoundText.classList.remove('hide');
+          }
+        } catch (e) {
+          console.log(e);
+          serverErrorText.classList.remove('hide');
+        } finally {
+          loader.classList.add('hide')
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        const elementToWatch = document.getElementById('disease');
+
+        let options = {
+          data: {}
+        }
+
+        M.Autocomplete.init(elementToWatch, options);
+
+        let prevTime = Date.now();
+        elementToWatch.addEventListener('keyup', async () => {
+          const autocompleteInstance = M.Autocomplete.getInstance(elementToWatch);
+
+          if (autocompleteInstance.isOpen == false) {
+            autocompleteInstance.open();
+          }
+
+          let currentTime = Date.now();
+
+          if ((currentTime - prevTime) < 500) {
+            return
+          }
+
+          prevTime = currentTime;
+
+          let currentText = elementToWatch.value.toLowerCase().trim();
+
+          if (currentText == '' || currentText.length < 3) {
+            return
+          }
+
+          let suggestions = {};
+
+          try {
+            let response = await fetch(`/get_suggestions?type=disease&text=${currentText}`);
+            response = await response.json();
+
+            if (response.status == 200) {
+              for (let suggestion of response.suggestions) {
+                suggestions[suggestion.disease] = null
+              }
+
+              autocompleteInstance.updateData(suggestions);
+              autocompleteInstance.open();
+
+              console.log(autocompleteInstance, suggestions);
+            } 
+
+          } catch (e) {
+            console.log(e);
+            // no need to show any text on the screen
+            autocompleteInstance.close();
+          }
+        })
+      })
+
+    </script>
+
+    <!--  Scripts-->
+    <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="./static/js/materialize.js"></script>
+    <script src="./static/js/init.js"></script>
+
+  </body>
+</html>

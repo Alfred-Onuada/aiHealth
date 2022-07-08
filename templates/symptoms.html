@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0" />
+    <title>Disease Prediction</title>
+
+    <!-- CSS  -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="./static/css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection" />
+    <link href="./static/css/style.css" type="text/css" rel="stylesheet" media="screen,projection" />
+    <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  </head>
+
+  <body>
+    <nav id="navbar" class="">
+      <div class="nav-wrapper">
+        <!-- Navbar Logo -->
+        <div class="logo">
+          <!-- Logo Placeholder for Inlustration -->
+          <a src="static/img/logo.png"><i class="fa fa-angellist"></i> Logo</a>
+        </div>
+
+        <!-- Navbar Links -->
+        <ul id="menu">
+          <li><a href="{{ url_for('home') }}">Home</a></li>
+          <li><a href="{{ url_for('disease') }}">Disease</a></li>
+          <li><a href="{{ url_for('symptoms') }}">Symptoms</a></li>
+          <li><a href="{{ url_for('common_symptoms') }}">Mutual Symptoms</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Menu Icon -->
+    <div class="menuIcon">
+      <span class="icon icon-bars"></span>
+      <span class="icon icon-bars overlay"></span>
+    </div>
+
+    <div class="overlay-menu">
+      <ul id="menu">
+        <li><a href="{{ url_for('home') }}">Home</a></li>
+        <li><a href="{{ url_for('disease') }}">Disease</a></li>
+        <li><a href="{{ url_for('symptoms') }}">Symptoms</a></li>
+        <li><a href="{{ url_for('common_symptoms') }}">Mutual Symptoms</a></li>
+      </ul>
+    </div>
+
+    <div class="section no-pad-bot" id="index-banner">
+      <div class="container">
+        <br><br>
+        <h2 class="header center orange-text">Disease Diagnosis</h2>
+        <div class="row center">
+          <h5 class="header col s12 light">Diagnose the disease based on the symptoms</h5>
+          <h6 class="header col s12 light">
+            (Please enter all symptoms )
+          </h6>
+        </div>
+
+        <div class="row">
+          <div class="chips" id="symptoms-chips"></div>
+
+          <div id="loader" class="center hide">
+            <div class="preloader-wrapper big active">
+              <div class="spinner-layer spinner-orange">
+                <div class="circle-clipper left">
+                  <div class="circle"></div>
+                </div>
+                <div class="gap-patch">
+                  <div class="circle"></div>
+                </div>
+                <div class="circle-clipper right">
+                  <div class="circle"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="output">
+            <h5 id="200" class="header col s12 light hide">Here are some of the likely diseases:</h5>
+            <h5 id="404" class="header col s12 light hide">We couldn't find any disease that has all this symptoms in our records, check the spellings and combinations and try again</h5>
+            <h5 id="500" class="header col s12 light hide">We encountered an error processing your request, please try again</h5>
+            
+            <ol id="diseases-list"></ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+
+      document.addEventListener('DOMContentLoaded', function () {
+
+        const chipContainer = document.getElementById('symptoms-chips');
+
+
+        const getDiseaseBySymptoms = async function () {
+
+          const instance = M.Chips.getInstance(chipContainer);
+
+          const symptoms = instance.chipsData.map(chip => chip.tag.toLowerCase());
+
+          const loader = document.getElementById('loader');
+          const diseasesList = document.getElementById('diseases-list');
+          const successText = document.getElementById('200');
+          const notFoundText = document.getElementById('404');
+          const serverErrorText = document.getElementById('500');
+
+          if (symptoms.length == 0) {
+            diseasesList.innerHTML = '';
+            return;
+          }
+  
+          // reset the texts
+          successText.classList.add('hide');
+          notFoundText.classList.add('hide');
+          serverErrorText.classList.add('hide');
+          diseasesList.innerHTML = '';
+  
+          loader.classList.remove('hide');
+  
+          try {
+            let response = await fetch(`/get_disease?symptoms=${symptoms.join(',')}`);
+            response = await response.json();
+  
+            if (response.status == 200) {
+              successText.classList.remove('hide');
+  
+              for (let disease of response.matches) {
+                let li = document.createElement('li');
+                li.classList.add("col", "s12");
+                li.style.cssText = "margin: 0px 5%;"
+                let h5 = document.createElement('h5');
+                h5.style.cssText = "color: black;";
+  
+                h5.textContent = disease.disease;
+                
+                li.appendChild(h5);
+                diseasesList.appendChild(li);
+              }
+  
+            } else if (response.status == 404) {
+              notFoundText.classList.remove('hide');
+            }
+          } catch (e) {
+            console.log(e)
+            serverErrorText.classList.remove('hide');
+          } finally {
+            loader.classList.add('hide')
+          }
+        }
+
+        let options = {
+          placeholder: 'Enter a symptom',
+          secondaryPlaceholder: 'Enter another',
+          onChipAdd: getDiseaseBySymptoms,
+          onChipDelete: getDiseaseBySymptoms,
+        }
+
+        M.Chips.init(chipContainer, options);
+      })
+
+    </script>
+
+    <!--  Scripts-->
+    <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="./static/js/materialize.js"></script>
+    <script src="./static/js/init.js"></script>
+    <script src="./static/js/script.js"></script>
+
+  </body>
+</html>
