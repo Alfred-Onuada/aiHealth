@@ -171,6 +171,10 @@ a {
     z-index: 12;
   }
 
+  .menuIcon:hover + .overlay-menu{
+    transform: translateX(0%); 
+  }
+
   /* Icon Bars */
   .icon-bars {
     background: rgb(13, 26, 38);

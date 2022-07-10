@@ -115,6 +115,17 @@ try:
                     }, 
                     'first_doc': {
                         '$first': '$symptoms'
+                    }, 
+                    'count': {
+                        '$sum': 1
+                    }
+                }
+            }, {
+                '$match': {
+                    '$expr': {
+                        '$eq': [
+                            '$count', len(diseasesToCompare)
+                        ]
                     }
                 }
             }, {
@@ -145,13 +156,17 @@ try:
         try:
             cursor = diseasesCollection.aggregate(Pipeline)
 
-            common_symptoms = cursor.next()
+            if cursor._has_next():
+                common_symptoms = cursor.next()
 
-            if len(common_symptoms) == 0:
-                return jsonify({ "status": 404 })
+                if len(common_symptoms) == 0:
+                    return jsonify({ "status": 404 })
 
-            return jsonify({ "status": 200, "common_symptoms": common_symptoms })
-        except:
+                return jsonify({ "status": 200, "common_symptoms": common_symptoms })
+            
+            return jsonify({ "status": 404 })
+        except Exception as e:
+            print(e)
             return jsonify({ "status": 500 })
         finally:
             if cursor:
