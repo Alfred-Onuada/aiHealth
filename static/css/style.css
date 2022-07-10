@@ -312,6 +312,7 @@ a {
   transform: translateX(-100%);
   width: 100vw;
   height: 100vh;
+  z-index: 9;
   -webkit-transition: transform 0.2s ease-out;
   transition: transform 0.2s ease-out;
 }
